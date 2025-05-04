@@ -106,9 +106,9 @@ def wait_for_any_key():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--full", "-f", action="store_true", help="Show all keybinds without pagination")
     parser.add_argument("--no-group", "-n", action="store_true", help="Do not group keybinds")
     parser.add_argument("--wait", "-w", action="store_true", help="Wait for key input before exiting")
+    parser.add_argument("--sort", "-s", action="store_true", help="Sort keybinds alphabetically by key. Default order is how they are ordered in the config file.")
     args = parser.parse_args()
 
     binds = get_keybinds()
@@ -126,6 +126,8 @@ def main():
             })
 
     width = shutil.get_terminal_size((80, 20)).columns - 2
+    if args.sort:
+        flat.sort(key=lambda x: x['key'])
     draw_table(flat, width)
 
     if args.wait:
