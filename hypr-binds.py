@@ -27,9 +27,8 @@ def get_keybinds() -> List[Dict]:
         output = subprocess.check_output(["hyprctl", "binds", "-j"])
         return json.loads(output)
     except Exception as e:
-        print("Warning: Falling back to local test file due to:", e)
-        with open("binds.json") as f:
-            return json.load(f)
+        print("Warning: Falling get bind list due to:", e)
+        return json.loads("{}")
 
 
 def format_modmask(modmask: int) -> str:
@@ -73,6 +72,19 @@ def group_keybinds(binds: List[Dict]) -> List[Dict]:
     return result
 
 
+def normalize_keybinds(binds: List[Dict]) -> List[Dict]:
+    normalized = []
+    for b in binds:
+        if "key" in b and "action" in b:
+            normalized.append(b)
+        else:
+            normalized.append({
+                "key": format_keybind(b),
+                "action": f"{b['dispatcher']} {b['arg']}"
+            })
+    return normalized
+
+
 def draw_table(entries: List[Dict], term_width: int):
     key_width = min(max(len("Keybind"), max(len(e["key"]) for e in entries)) + 2, term_width // 2)
     action_width = term_width - key_width - 1
@@ -108,22 +120,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--no-group", "-n", action="store_true", help="Do not group keybinds")
     parser.add_argument("--wait", "-w", action="store_true", help="Wait for key input before exiting")
-    parser.add_argument("--sort", "-s", action="store_true", help="Sort keybinds alphabetically by key. Default order is how they are ordered in the config file.")
+    parser.add_argument("--sort", "-s", action="store_true", help="Sort keybinds alphabetically by key. By default the order is the same as in the config file.")
     args = parser.parse_args()
 
     binds = get_keybinds()
     processed = binds if args.no_group else group_keybinds(binds)
-
-    # Normalize to list of dicts with 'key' and 'action'
-    flat = []
-    for b in processed:
-        if "key" in b and "action" in b:
-            flat.append(b)
-        else:
-            flat.append({
-                "key": format_keybind(b),
-                "action": f"{b['dispatcher']} {b['arg']}"
-            })
+    flat = normalize_keybinds(processed)
 
     width = shutil.get_terminal_size((80, 20)).columns - 2
     if args.sort:
